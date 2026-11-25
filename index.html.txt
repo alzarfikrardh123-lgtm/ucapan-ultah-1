@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Selamat Ulang Tahun!</title>
+<style>
+:root{--bg1:#ffe3ec;--bg2:#fff4d6;--card:#fff;--text:#3a2335;--muted:#7a5d72;--accent:#e8457c;--accent2:#ffb347;--cake:#f7a8c4;--cake2:#fff1c9}
+@media (prefers-color-scheme:dark){:root{--bg1:#2a1530;--bg2:#1c1a33;--card:#2f2340;--text:#fbeaf3;--muted:#c9aebf;--accent:#ff6b9d;--accent2:#ffc15e;--cake:#c9668e;--cake2:#e8d6a0}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--text);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;align-items:center;justify-content:center;padding:20px;overflow-x:hidden}
+canvas{position:fixed;inset:0;pointer-events:none;z-index:5}
+.card{position:relative;z-index:2;width:100%;max-width:440px;background:var(--card);border-radius:28px;padding:32px 24px;text-align:center;box-shadow:0 20px 50px rgba(232,69,124,.22)}
+h1{font-family:Georgia,"Times New Roman",serif;margin:.2em 0;color:var(--accent);line-height:1.2;font-size:2rem}
+.name{font-size:2.4rem}
+p{color:var(--muted);line-height:1.6;margin:.6em 0}
+button{margin-top:12px;padding:13px 26px;border:0;border-radius:999px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:1rem;font-weight:600;cursor:pointer;box-shadow:0 8px 20px rgba(232,69,124,.3);transition:transform .15s}
+button:hover{transform:translateY(-2px)}button:active{transform:scale(.97)}
+#greet{display:none}
+.photo{width:170px;height:170px;border-radius:50%;object-fit:cover;border:6px solid var(--accent);box-shadow:0 10px 25px rgba(232,69,124,.35);margin:6px auto 10px;display:block}
+.cake{width:190px;margin:6px auto;cursor:pointer;display:block}
+.flame{transform-origin:50% 100%;animation:fl .5s ease-in-out infinite alternate}
+@keyframes fl{from{transform:scale(1) rotate(-3deg)}to{transform:scale(1.12) rotate(3deg)}}
+.off .flame{display:none}
+.msg{background:var(--bg2);border-radius:16px;padding:14px 16px;font-style:italic;color:var(--text);margin-top:14px;white-space:pre-line}
+.hint{font-size:.85rem}
+.sender{font-weight:600;color:var(--accent)}
+#mute{position:fixed;top:14px;right:14px;z-index:6;width:44px;height:44px;padding:0;margin:0;font-size:1.2rem;display:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<button id="mute" aria-label="Nyalakan atau matikan musik">🔊</button>
+<audio id="bgm" loop preload="auto"></audio>
+
+<main class="card">
+  <section id="intro">
+    <div style="font-size:3.5rem">🎁</div>
+    <h1>Ada kejutan untukmu!</h1>
+    <p>Ketuk tombol di bawah untuk membukanya.</p>
+    <button id="open">Buka Kejutan 🎉</button>
+  </section>
+
+  <section id="greet">
+    <img id="photo" class="photo" alt="Foto" style="display:none">
+    <p>Selamat Ulang Tahun</p>
+    <h1 class="name" id="n"></h1>
+    <p id="a"></p>
+    <svg class="cake" id="cake" viewBox="0 0 200 190" aria-label="Kue ulang tahun, ketuk untuk tiup lilin">
+      <g>
+        <rect x="62" y="62" width="10" height="34" rx="3" fill="#6ec6ff"/><path class="flame" d="M67 40c7 9 7 16 0 20-7-4-7-11 0-20z" fill="#ffb347"/>
+        <rect x="95" y="52" width="10" height="44" rx="3" fill="#ff8fb3"/><path class="flame" d="M100 30c7 9 7 16 0 20-7-4-7-11 0-20z" fill="#ffb347"/>
+        <rect x="128" y="62" width="10" height="34" rx="3" fill="#a7e08c"/><path class="flame" d="M133 40c7 9 7 16 0 20-7-4-7-11 0-20z" fill="#ffb347"/>
+      </g>
+      <rect x="30" y="94" width="140" height="42" rx="10" fill="var(--cake)"/>
+      <path d="M30 108q12 12 24 0t24 0 24 0 24 0 24 0 20 0v-6a8 8 0 0 0-8-8H38a8 8 0 0 0-8 8z" fill="var(--cake2)"/>
+      <rect x="18" y="134" width="164" height="44" rx="12" fill="var(--accent)"/>
+      <path d="M18 150q13 12 27 0t27 0 27 0 27 0 27 0 20 0v-4a12 12 0 0 0-12-12H30a12 12 0 0 0-12 12z" fill="var(--cake2)"/>
+    </svg>
+    <p class="hint" id="hint">Ketuk kue untuk meniup lilin 🕯️</p>
+    <div class="msg" id="msg"></div>
+    <p>Dari <span class="sender" id="f"></span></p>
+  </section>
+</main>
+
+<script>
+/* ============ PENGATURAN: ubah bagian ini saja ============ */
+const CONFIG = {
+  nama:  "Shelaa",                   // nama yang berulang tahun
+  dari:  "Seseorang yang menyayangimu", // nama pengirim
+  usia:  "",                            // contoh: 25 (kosongkan jika tidak mau)
+  pesan: "Semoga panjang umur, sehat selalu, dan semua impianmu satu per satu jadi nyata.\nTerima kasih sudah menjadi orang yang hebat!",
+  foto:  "foto.jpg",                    // taruh file di folder yang sama
+  lagu:  "lagu.mp3"                     // taruh file di folder yang sama
+};
+/* ========================================================== */
+
+/* Opsional: link khusus per orang, contoh index.html?nama=Budi&dari=Ani&usia=20 */
+const q = new URLSearchParams(location.search);
+["nama","dari","usia","pesan"].forEach(k => { if (q.get(k)) CONFIG[k] = q.get(k); });
+
+const $ = id => document.getElementById(id);
+const bgm = $("bgm"), photo = $("photo");
+
+$("n").textContent = CONFIG.nama;
+$("f").textContent = CONFIG.dari;
+$("a").textContent = CONFIG.usia ? "yang ke-" + CONFIG.usia + " 🎂" : "🎂";
+$("msg").textContent = "“" + CONFIG.pesan + "”";
+document.title = "Selamat Ulang Tahun, " + CONFIG.nama + "!";
+
+if (CONFIG.foto) {
+  photo.onload = () => photo.style.display = "block";
+  photo.onerror = () => photo.style.display = "none";
+  photo.src = CONFIG.foto;
+}
+if (CONFIG.lagu) bgm.src = CONFIG.lagu;
+
+/* Confetti */
+const cv = $("c"), cx = cv.getContext("2d");
+let parts = [], raf = null;
+function size(){ cv.width = innerWidth; cv.height = innerHeight; }
+size(); addEventListener("resize", size);
+function burst(n = 140){
+  const cols = ["#e8457c","#ffb347","#6ec6ff","#a7e08c","#c58cff","#ffffff"];
+  for (let i = 0; i < n; i++) parts.push({x:innerWidth/2,y:innerHeight/3,vx:(Math.random()-.5)*14,vy:Math.random()*-12-2,s:Math.random()*7+4,c:cols[i%cols.length],r:Math.random()*6,vr:(Math.random()-.5)*.4});
+  if (!raf) loop();
+}
+function loop(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  parts.forEach(p => {
+    p.vy += .28; p.x += p.vx; p.y += p.vy; p.vx *= .99; p.r += p.vr;
+    cx.save(); cx.translate(p.x,p.y); cx.rotate(p.r); cx.fillStyle = p.c; cx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2); cx.restore();
+  });
+  parts = parts.filter(p => p.y < innerHeight + 20);
+  raf = parts.length ? requestAnimationFrame(loop) : null;
+  if (!raf) cx.clearRect(0,0,cv.width,cv.height);
+}
+
+/* Buka kejutan + putar musik (harus lewat ketukan agar diizinkan browser) */
+$("open").onclick = () => {
+  $("intro").style.display = "none";
+  $("greet").style.display = "block";
+  burst();
+  if (CONFIG.lagu) {
+    bgm.play().then(() => $("mute").style.display = "block").catch(() => {});
+  }
+};
+$("mute").onclick = () => {
+  if (bgm.paused) { bgm.play(); $("mute").textContent = "🔊"; }
+  else { bgm.pause(); $("mute").textContent = "🔇"; }
+};
+
+/* Tiup lilin */
+$("cake").onclick = () => {
+  const c = $("cake");
+  if (!c.classList.contains("off")) {
+    c.classList.add("off"); $("hint").textContent = "Yeay! Semoga permintaanmu terkabul ✨"; burst(200);
+  } else {
+    c.classList.remove("off"); $("hint").textContent = "Ketuk kue untuk meniup lilin 🕯️";
+  }
+};
+</script>
+</body>
+</html>
